@@ -17,7 +17,6 @@
       --button-hover: #26336b;
       --shadow: 0 20px 60px rgba(0,0,0,0.45);
     }
-
     html, body {
       margin: 0;
       width: 100%;
@@ -27,17 +26,14 @@
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       color: var(--text);
     }
-
     canvas {
       display: block;
     }
-
     #hud, #menu, #pause, #gameover {
       position: fixed;
       inset: 0;
       pointer-events: none;
     }
-
     .panel {
       pointer-events: auto;
       position: absolute;
@@ -54,35 +50,28 @@
       -webkit-backdrop-filter: blur(14px);
       text-align: center;
     }
-
     .hidden {
       display: none;
     }
-
     h1, h2 {
       margin: 0 0 10px;
       letter-spacing: 0.5px;
     }
-
     h1 {
       font-size: clamp(32px, 5vw, 56px);
     }
-
     h2 {
       font-size: clamp(24px, 4vw, 36px);
     }
-
     p {
       margin: 8px 0;
       color: var(--muted);
       line-height: 1.5;
     }
-
     .sub {
       font-size: 15px;
       margin-top: 12px;
     }
-
     .row {
       display: flex;
       gap: 12px;
@@ -105,16 +94,13 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.25);
       transition: transform 0.15s ease, background 0.15s ease;
     }
-
     button:hover {
       background: linear-gradient(180deg, var(--button-hover), #182155);
       transform: translateY(-1px);
     }
-
     button:active {
       transform: translateY(1px);
     }
-
     #hud {
       display: flex;
       justify-content: space-between;
@@ -122,7 +108,6 @@
       padding: 18px;
       box-sizing: border-box;
     }
-
     .hud-box {
       pointer-events: auto;
       min-width: 140px;
@@ -132,19 +117,16 @@
       border: 1px solid rgba(255,255,255,0.12);
       backdrop-filter: blur(10px);
     }
-
     #score {
       font-size: 18px;
       font-weight: 800;
       color: #fff;
     }
-
     #status {
       font-size: 13px;
       color: var(--muted);
       margin-top: 4px;
     }
-
     #pauseBtn {
       pointer-events: auto;
       position: absolute;
@@ -153,15 +135,12 @@
       padding: 11px 14px;
       border-radius: 14px;
     }
-
     .accent {
       color: var(--accent);
     }
-
     .danger {
       color: var(--danger);
     }
-
     .tiny {
       font-size: 13px;
       color: var(--muted);
@@ -188,30 +167,6 @@
       <div id="status">jumper</div>
     </div>
     <button id="pauseBtn">Pause</button>
-  </div>
-
-  <div id="pause" class="hidden">
-    <div class="panel">
-      <h2>Paused</h2>
-      <p>Waiting for your arrival....</p>
-      <div class="row">
-        <button id="resumeBtn">Resume</button>
-        <button id="restartFromPauseBtn">Restart</button>
-      </div>
-      <p class="tiny">Press <span class="accent">Esc</span> to resume.</p>
-    </div>
-  </div>
-
-  <div id="gameover" class="hidden">
-    <div class="panel">
-      <h2 class="danger">GAME OVER</h2>
-      <p>The cube hit a spike!</p>
-      <p id="finalScore">Distance: 0</p>
-      <div class="row">
-        <button id="retryBtn">Retry</button>
-      </div>
-      <p class="tiny">Play again and beat your high score!</p>
-    </div>
   </div>
 
   <script type="module">
