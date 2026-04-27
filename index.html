@@ -17,6 +17,7 @@
       --button-hover: #26336b;
       --shadow: 0 20px 60px rgba(0,0,0,0.45);
     }
+
     html, body {
       margin: 0;
       width: 100%;
@@ -50,9 +51,11 @@
       -webkit-backdrop-filter: blur(14px);
       text-align: center;
     }
+
     .hidden {
       display: none;
     }
+
     h1, h2 {
       margin: 0 0 10px;
       letter-spacing: 0.5px;
@@ -68,10 +71,12 @@
       color: var(--muted);
       line-height: 1.5;
     }
+
     .sub {
       font-size: 15px;
       margin-top: 12px;
     }
+
     .row {
       display: flex;
       gap: 12px;
@@ -98,6 +103,7 @@
       background: linear-gradient(180deg, var(--button-hover), #182155);
       transform: translateY(-1px);
     }
+
     button:active {
       transform: translateY(1px);
     }
@@ -117,6 +123,7 @@
       border: 1px solid rgba(255,255,255,0.12);
       backdrop-filter: blur(10px);
     }
+
     #score {
       font-size: 18px;
       font-weight: 800;
@@ -127,6 +134,7 @@
       color: var(--muted);
       margin-top: 4px;
     }
+
     #pauseBtn {
       pointer-events: auto;
       position: absolute;
@@ -135,6 +143,7 @@
       padding: 11px 14px;
       border-radius: 14px;
     }
+
     .accent {
       color: var(--accent);
     }
@@ -169,6 +178,30 @@
     <button id="pauseBtn">Pause</button>
   </div>
 
+  <div id="pause" class="hidden">
+    <div class="panel">
+      <h2>Paused</h2>
+      <p>Waiting for your arrival....</p>
+      <div class="row">
+        <button id="resumeBtn">Resume</button>
+        <button id="restartFromPauseBtn">Restart</button>
+      </div>
+      <p class="tiny">Press <span class="accent">Esc</span> to resume.</p>
+    </div>
+  </div>
+
+  <div id="gameover" class="hidden">
+    <div class="panel">
+      <h2 class="danger">GAME OVER</h2>
+      <p>The cube hit a spike!</p>
+      <p id="finalScore">Distance: 0</p>
+      <div class="row">
+        <button id="retryBtn">Retry</button>
+      </div>
+      <p class="tiny">Play again and beat your high score!</p>
+    </div>
+  </div>
+
   <script type="module">
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
@@ -200,11 +233,9 @@
 
     const listener = new THREE.AudioListener();
     camera.add(listener);
-
     const music = new THREE.Audio(listener);
     const audioLoader = new THREE.AudioLoader();
     let musicReady = false;
-
     audioLoader.load(
       'assets/bg-music.mp3',
       (buffer) => {
@@ -218,7 +249,6 @@
         console.log('Music file not found yet. Add assets/bg-music.mp3');
       }
     );
-
     const light = new THREE.DirectionalLight(0xffffff, 2.2);
     light.position.set(6, 12, 8);
     light.castShadow = true;
@@ -228,7 +258,6 @@
 
     const ambient = new THREE.AmbientLight(0x96a9ff, 1.15);
     scene.add(ambient);
-
     const fill = new THREE.PointLight(0x57f3ff, 18, 50);
     fill.position.set(-8, 4, 6);
     scene.add(fill);
@@ -254,7 +283,6 @@
       canvas.height = 256;
       const ctx = canvas.getContext('2d');
       drawFn(ctx, canvas);
-
       const tex = new THREE.CanvasTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.wrapS = THREE.RepeatWrapping;
@@ -262,7 +290,6 @@
       tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
       return tex;
     }
-
     function buildPlayerTexture() {
       return makeCanvasTexture((ctx, canvas) => {
         const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -270,7 +297,6 @@
         g.addColorStop(1, '#f59e0b');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         ctx.strokeStyle = 'rgba(255,255,255,0.35)';
         ctx.lineWidth = 8;
         for (let i = -256; i < 512; i += 42) {
@@ -279,7 +305,6 @@
           ctx.lineTo(i + 120, 256);
           ctx.stroke();
         }
-
         ctx.fillStyle = 'rgba(25, 25, 40, 0.95)';
         ctx.fillRect(50, 78, 38, 38);
         ctx.fillRect(168, 78, 38, 38);
@@ -290,7 +315,6 @@
         ctx.strokeRect(8, 8, 240, 240);
       });
     }
-
     function buildPlatformTexture() {
       return makeCanvasTexture((ctx, canvas) => {
         const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -298,7 +322,6 @@
         g.addColorStop(1, '#121a38');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         ctx.strokeStyle = 'rgba(124,247,197,0.35)';
         ctx.lineWidth = 6;
         for (let x = 0; x < 256; x += 32) {
@@ -307,7 +330,6 @@
           ctx.lineTo(x + 32, 256);
           ctx.stroke();
         }
-
         ctx.strokeStyle = 'rgba(255,255,255,0.12)';
         ctx.lineWidth = 2;
         for (let y = 0; y < 256; y += 32) {
@@ -321,7 +343,6 @@
         ctx.fillRect(0, 0, 256, 18);
       });
     }
-
     function buildSpikeTexture() {
       return makeCanvasTexture((ctx, canvas) => {
         const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -343,11 +364,9 @@
         ctx.strokeRect(8, 8, 240, 240);
       });
     }
-
     const playerTex = buildPlayerTexture();
     const platformTex = buildPlatformTexture();
     const spikeTex = buildSpikeTexture();
-
     const texLoader = new THREE.TextureLoader();
     texLoader.load('assets/cube.png', (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
@@ -364,40 +383,34 @@
       spikeMaterial.map = tex;
       spikeMaterial.needsUpdate = true;
     });
-
     const playerMaterial = new THREE.MeshStandardMaterial({
       map: playerTex,
       roughness: 0.7,
       metalness: 0.05,
       flatShading: true
     });
-
     const platformMaterial = new THREE.MeshStandardMaterial({
       map: platformTex,
       roughness: 1.0,
       metalness: 0.0
     });
-
     const spikeMaterial = new THREE.MeshStandardMaterial({
       map: spikeTex,
       roughness: 0.8,
       metalness: 0.0,
       flatShading: true
     });
-
     const floorY = 1.5;
     const player = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), playerMaterial);
     player.castShadow = true;
     player.receiveShadow = true;
     player.position.set(-6, floorY, 0);
     scene.add(player);
-
     const groundSegments = [];
     const segmentCount = 14;
     const segmentWidth = 8;
     const segmentHeight = 1;
     const segmentDepth = 6;
-
     for (let i = 0; i < segmentCount; i++) {
       const seg = new THREE.Mesh(
         new THREE.BoxGeometry(segmentWidth, segmentHeight, segmentDepth),
@@ -461,7 +474,6 @@
     const obstacles = [
       ...spikes.map(s => s.group)
     ];
-
     let state = 'menu';
     let isOnGround = true;
     let velocityY = 0;
@@ -469,7 +481,6 @@
     let runTime = 0;
     let bestScore = 0;
     let jumpCooldown = 0;
-
     function showOnly(panel) {
       menu.classList.add('hidden');
       hud.classList.add('hidden');
@@ -487,47 +498,39 @@
       if (panel === 'pause') pausePanel.classList.remove('hidden');
       if (panel === 'gameover') gameoverPanel.classList.remove('hidden');
     }
-
     function resetGame() {
       player.position.set(-6, floorY, 0);
       velocityY = 0;
       isOnGround = true;
       worldSpeed = 9;
       runTime = 0;
-
       groundSegments.forEach((seg, i) => {
         seg.position.x = i * segmentWidth - 8;
       });
-
       spikes.forEach((spike, i) => {
         spike.group.position.x = 18 + i * 15 + Math.random() * 10;
         spike.group.position.y = 0;
       });
-
       scoreEl.textContent = 'Distance: 0';
       finalScore.textContent = 'Distance: 0';
     }
-
     function startMusic() {
       if (!musicReady) return;
       if (!music.isPlaying) {
         music.play();
       }
     }
-
     function stopMusic() {
       if (music.isPlaying) {
         music.stop();
       }
     }
-
     function startGame() {
       resetGame();
       state = 'playing';
       showOnly('hud');
       startMusic();
     }
-
     function pauseGame() {
       if (state !== 'playing') return;
       state = 'paused';
@@ -535,14 +538,12 @@
       showOnly('pause');
       if (music.isPlaying) music.pause();
     }
-
     function resumeGame() {
       if (state !== 'paused') return;
       state = 'playing';
       showOnly('hud');
       if (musicReady && pausedFromGame) music.play();
     }
-
     function endGame() {
       state = 'gameover';
       stopMusic();
@@ -550,7 +551,6 @@
       finalScore.textContent = `Distance: ${Math.floor(runTime * 10)}`;
       showOnly('gameover');
     }
-
     function jump() {
       if (state !== 'playing') return;
       if (isOnGround && jumpCooldown <= 0) {
@@ -559,7 +559,6 @@
         isOnGround = false;
       }
     }
-
     function collideWithSpike(spikeGroup) {
       const playerBox = new THREE.Box3(new THREE.Vector3(player.position.x - 0.4, player.position.y - 0.4, player.position.z - 0.4), new THREE.Vector3(player.position.x + 0.4, player.position.y + 0.4, player.position.z + 0.4));
       for (const child of spikeGroup.children) {
@@ -617,16 +616,13 @@
       camera.lookAt(-2, 1, 0);
       stars.rotation.y += dt * 0.01;
     }
-
     const clock = new THREE.Clock();
-
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.033);
       update(dt);
       renderer.render(scene, camera);
     }
-
     animate();
     playBtn.addEventListener('click', () => {
       startGame();
