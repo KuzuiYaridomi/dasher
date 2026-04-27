@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dasher 3D</title>
+  <style>
+    :root {
+      --bg: #060814;
+      --panel: rgba(10, 14, 28, 0.78);
+      --panel-border: rgba(255,255,255,0.14);
+      --text: #eef3ff;
+      --muted: #9aa9d6;
+      --accent: #7cf7c5;
+      --danger: #ff6b7a;
+      --button: #1b2550;
+      --button-hover: #26336b;
+      --shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #11183a 0%, #060814 52%, #03040a 100%);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #hud, #menu, #pause, #gameover {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .panel {
+      pointer-events: auto;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(92vw, 540px);
+      padding: 28px;
+      border-radius: 24px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      text-align: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    h1, h2 {
+      margin: 0 0 10px;
+      letter-spacing: 0.5px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 5vw, 56px);
+    }
+
+    h2 {
+      font-size: clamp(24px, 4vw, 36px);
+    }
+
+    p {
+      margin: 8px 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .sub {
+      font-size: 15px;
+      margin-top: 12px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    button {
+      pointer-events: auto;
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--button), #121a3c);
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    button:hover {
+      background: linear-gradient(180deg, var(--button-hover), #182155);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    #hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+
+    .hud-box {
+      pointer-events: auto;
+      min-width: 140px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(10, 14, 28, 0.5);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(10px);
+    }
+
+    #score {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    #status {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    #pauseBtn {
+      pointer-events: auto;
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      padding: 11px 14px;
+      border-radius: 14px;
+    }
+
+    .accent {
+      color: var(--accent);
+    }
+
+    .danger {
+      color: var(--danger);
+    }
+
+    .tiny {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="menu">
+    <div class="panel">
+      <h1>Dasher 3D</h1>
+      <p>A weird game made using three.js where you move a random cube and save it from spikes</p>
+      <p>Jump over spikes, and survive as long as you can!</p>
+      <div class="row">
+        <button id="playBtn">Play</button>
+      </div>
+      <p class="sub">Controls: <span class="accent">Space</span> or <span class="accent">Click</span> to jump, <span class="accent">Esc</span> to pause.</p>
+      
+  </div>
+
+  <div id="hud" class="hidden">
+    <div class="hud-box">
+      <div id="score">Distance: 0</div>
+      <div id="status">jumper</div>
+    </div>
+    <button id="pauseBtn">Pause</button>
+  </div>
+
+  <div id="pause" class="hidden">
+    <div class="panel">
+      <h2>Paused</h2>
+      <p>Waiting for your arrival....</p>
+      <div class="row">
+        <button id="resumeBtn">Resume</button>
+        <button id="restartFromPauseBtn">Restart</button>
+      </div>
+      <p class="tiny">Press <span class="accent">Esc</span> to resume.</p>
+    </div>
+  </div>
+
+  <div id="gameover" class="hidden">
+    <div class="panel">
+      <h2 class="danger">GAME OVER</h2>
+      <p>The cube hit a spike!</p>
+      <p id="finalScore">Distance: 0</p>
+      <div class="row">
+        <button id="retryBtn">Retry</button>
+      </div>
+      <p class="tiny">Play again and beat your high score!</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+    const menu = document.getElementById('menu');
+    const hud = document.getElementById('hud');
+    const pausePanel = document.getElementById('pause');
+    const gameoverPanel = document.getElementById('gameover');
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const restartFromPauseBtn = document.getElementById('restartFromPauseBtn');
+    const scoreEl = document.getElementById('score');
+    const finalScore = document.getElementById('finalScore');
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x060814, 16, 90);
+    scene.background = new THREE.Color(0x060814);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(-2, 6.5, 10);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const listener = new THREE.AudioListener();
+    camera.add(listener);
+
+    const music = new THREE.Audio(listener);
+    const audioLoader = new THREE.AudioLoader();
+    let musicReady = false;
+
+    audioLoader.load(
+      'assets/bg-music.mp3',
+      (buffer) => {
+        music.setBuffer(buffer);
+        music.setLoop(true);
+        music.setVolume(0.45);
+        musicReady = true;
+      },
+      undefined,
+      () => {
+        console.log('Music file not found yet. Add assets/bg-music.mp3');
+      }
+    );
+
+    const light = new THREE.DirectionalLight(0xffffff, 2.2);
+    light.position.set(6, 12, 8);
+    light.castShadow = true;
+    light.shadow.mapSize.width = 2048;
+    light.shadow.mapSize.height = 2048;
+    scene.add(light);
+
+    const ambient = new THREE.AmbientLight(0x96a9ff, 1.15);
+    scene.add(ambient);
+
+    const fill = new THREE.PointLight(0x57f3ff, 18, 50);
+    fill.position.set(-8, 4, 6);
+    scene.add(fill);
+
+    const starsGeo = new THREE.BufferGeometry();
+    const starsCount = 1000;
+    const starPositions = new Float32Array(starsCount * 3);
+    for (let i = 0; i < starsCount; i++) {
+      starPositions[i * 3 + 0] = (Math.random() - 0.5) * 120;
+      starPositions[i * 3 + 1] = Math.random() * 40 + 5;
+      starPositions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+    }
+    starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const stars = new THREE.Points(
+      starsGeo,
+      new THREE.PointsMaterial({ color: 0xffffff, size: 0.16, transparent: true, opacity: 0.9 })
+    );
+    scene.add(stars);
+
+    function makeCanvasTexture(drawFn) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      drawFn(ctx, canvas);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return tex;
+    }
+
+    function buildPlayerTexture() {
+      return makeCanvasTexture((ctx, canvas) => {
+        const g = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        g.addColorStop(0, '#ffe66d');
+        g.addColorStop(1, '#f59e0b');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 8;
+        for (let i = -256; i < 512; i += 42) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i + 120, 256);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = 'rgba(25, 25, 40, 0.95)';
+        ctx.fillRect(50, 78, 38, 38);
+        ctx.fillRect(168, 78, 38, 38);
+        ctx.fillRect(88, 160, 80, 16);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(8, 8, 240, 240);
+      });
+    }
+
+    function buildPlatformTexture() {
+      return makeCanvasTexture((ctx, canvas) => {
+        const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        g.addColorStop(0, '#2f3d76');
+        g.addColorStop(1, '#121a38');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'rgba(124,247,197,0.35)';
+        ctx.lineWidth = 6;
+        for (let x = 0; x < 256; x += 32) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x + 32, 256);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 2;
+        for (let y = 0; y < 256; y += 32) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(256, y);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(0, 0, 256, 18);
+      });
+    }
+
+    function buildSpikeTexture() {
+      return makeCanvasTexture((ctx, canvas) => {
+        const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        g.addColorStop(0, '#ff95a1');
+        g.addColorStop(1, '#d81f40');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(256, 0);
+        ctx.lineTo(130, 150);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(8, 8, 240, 240);
+      });
+    }
+
+    const playerTex = buildPlayerTexture();
+    const platformTex = buildPlatformTexture();
+    const spikeTex = buildSpikeTexture();
+
+    const texLoader = new THREE.TextureLoader();
+    texLoader.load('assets/cube.png', (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      playerMaterial.map = tex;
+      playerMaterial.needsUpdate = true;
+    });
+    texLoader.load('assets/wall.png', (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      platformMaterial.map = tex;
+      platformMaterial.needsUpdate = true;
+    });
+    texLoader.load('assets/spik.png', (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      spikeMaterial.map = tex;
+      spikeMaterial.needsUpdate = true;
+    });
+
+    const playerMaterial = new THREE.MeshStandardMaterial({
+      map: playerTex,
+      roughness: 0.7,
+      metalness: 0.05,
+      flatShading: true
+    });
+
+    const platformMaterial = new THREE.MeshStandardMaterial({
+      map: platformTex,
+      roughness: 1.0,
+      metalness: 0.0
+    });
+
+    const spikeMaterial = new THREE.MeshStandardMaterial({
+      map: spikeTex,
+      roughness: 0.8,
+      metalness: 0.0,
+      flatShading: true
+    });
+
+    const floorY = 1.5;
+    const player = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), playerMaterial);
+    player.castShadow = true;
+    player.receiveShadow = true;
+    player.position.set(-6, floorY, 0);
+    scene.add(player);
+
+    const groundSegments = [];
+    const segmentCount = 14;
+    const segmentWidth = 8;
+    const segmentHeight = 1;
+    const segmentDepth = 6;
+
+    for (let i = 0; i < segmentCount; i++) {
+      const seg = new THREE.Mesh(
+        new THREE.BoxGeometry(segmentWidth, segmentHeight, segmentDepth),
+        platformMaterial
+      );
+      seg.castShadow = false;
+      seg.receiveShadow = true;
+      seg.position.set(i * segmentWidth - 8, 0, 0);
+      scene.add(seg);
+      groundSegments.push(seg);
+    }
+
+    const spikeCount = 10;
+    const spikes = [];
+    const spikeTypes = ['single', 'double', 'triple'];
+    for (let i = 0; i < spikeCount; i++) {
+      const type = spikeTypes[Math.floor(Math.random() * 3)];
+      const group = new THREE.Group();
+      if (type === 'single') {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.2, 3), spikeMaterial);
+        spike.position.set(0, 0.6, 0);
+        spike.rotation.y = Math.PI / 6;
+        spike.castShadow = true;
+        spike.receiveShadow = true;
+        group.add(spike);
+      } else if (type === 'double') {
+        const spike1 = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.2, 3), spikeMaterial);
+        spike1.position.set(-0.8, 0.6, 0);
+        spike1.rotation.y = Math.PI / 6;
+        spike1.castShadow = true;
+        spike1.receiveShadow = true;
+        const spike2 = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.2, 3), spikeMaterial);
+        spike2.position.set(0.8, 0.6, 0);
+        spike2.rotation.y = Math.PI / 6;
+        spike2.castShadow = true;
+        spike2.receiveShadow = true;
+        group.add(spike1, spike2);
+      } else { // triple
+        const spike1 = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.2, 3), spikeMaterial);
+        spike1.position.set(-1.2, 0.6, 0);
+        spike1.rotation.y = Math.PI / 6;
+        spike1.castShadow = true;
+        spike1.receiveShadow = true;
+        const spike2 = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.2, 3), spikeMaterial);
+        spike2.position.set(0, 0.6, 0);
+        spike2.rotation.y = Math.PI / 6;
+        spike2.castShadow = true;
+        spike2.receiveShadow = true;
+        const spike3 = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.2, 3), spikeMaterial);
+        spike3.position.set(1.2, 0.6, 0);
+        spike3.rotation.y = Math.PI / 6;
+        spike3.castShadow = true;
+        spike3.receiveShadow = true;
+        group.add(spike1, spike2, spike3);
+      }
+      group.position.set(18 + i * 15 + Math.random() * 10, 0, 0);
+      scene.add(group);
+      spikes.push({ group, type });
+    }
+
+    const obstacles = [
+      ...spikes.map(s => s.group)
+    ];
+
+    let state = 'menu';
+    let isOnGround = true;
+    let velocityY = 0;
+    let worldSpeed = 9;
+    let runTime = 0;
+    let bestScore = 0;
+    let jumpCooldown = 0;
+
+    function showOnly(panel) {
+      menu.classList.add('hidden');
+      hud.classList.add('hidden');
+      pausePanel.classList.add('hidden');
+      gameoverPanel.classList.add('hidden');
+
+      if (panel === 'menu') {
+        menu.classList.remove('hidden');
+        pauseBtn.style.display = 'none';
+      }
+      if (panel === 'hud') {
+        hud.classList.remove('hidden');
+        pauseBtn.style.display = 'block';
+      }
+      if (panel === 'pause') pausePanel.classList.remove('hidden');
+      if (panel === 'gameover') gameoverPanel.classList.remove('hidden');
+    }
+
+    function resetGame() {
+      player.position.set(-6, floorY, 0);
+      velocityY = 0;
+      isOnGround = true;
+      worldSpeed = 9;
+      runTime = 0;
+
+      groundSegments.forEach((seg, i) => {
+        seg.position.x = i * segmentWidth - 8;
+      });
+
+      spikes.forEach((spike, i) => {
+        spike.group.position.x = 18 + i * 15 + Math.random() * 10;
+        spike.group.position.y = 0;
+      });
+
+      scoreEl.textContent = 'Distance: 0';
+      finalScore.textContent = 'Distance: 0';
+    }
+
+    function startMusic() {
+      if (!musicReady) return;
+      if (!music.isPlaying) {
+        music.play();
+      }
+    }
+
+    function stopMusic() {
+      if (music.isPlaying) {
+        music.stop();
+      }
+    }
+
+    function startGame() {
+      resetGame();
+      state = 'playing';
+      showOnly('hud');
+      startMusic();
+    }
+
+    function pauseGame() {
+      if (state !== 'playing') return;
+      state = 'paused';
+      pausedFromGame = true;
+      showOnly('pause');
+      if (music.isPlaying) music.pause();
+    }
+
+    function resumeGame() {
+      if (state !== 'paused') return;
+      state = 'playing';
+      showOnly('hud');
+      if (musicReady && pausedFromGame) music.play();
+    }
+
+    function endGame() {
+      state = 'gameover';
+      stopMusic();
+      bestScore = Math.max(bestScore, Math.floor(runTime * 10));
+      finalScore.textContent = `Distance: ${Math.floor(runTime * 10)}`;
+      showOnly('gameover');
+    }
+
+    function jump() {
+      if (state !== 'playing') return;
+      if (isOnGround && jumpCooldown <= 0) {
+        velocityY = 9.5;
+        jumpCooldown = 0.2;
+        isOnGround = false;
+      }
+    }
+
+    function collideWithSpike(spikeGroup) {
+      const playerBox = new THREE.Box3(new THREE.Vector3(player.position.x - 0.4, player.position.y - 0.4, player.position.z - 0.4), new THREE.Vector3(player.position.x + 0.4, player.position.y + 0.4, player.position.z + 0.4));
+      for (const child of spikeGroup.children) {
+        const sBox = new THREE.Box3().setFromObject(child);
+        if (playerBox.intersectsBox(sBox)) return true;
+      }
+      return false;
+    }
+
+    function update(dt) {
+      if (state !== 'playing') return;
+      runTime += dt;
+      jumpCooldown -= dt;
+      if (jumpCooldown < 0) jumpCooldown = 0;
+      worldSpeed = Math.min(18, 9 + runTime * 0.5);
+      scoreEl.textContent = `Distance: ${Math.floor(runTime * 10)}`;
+
+      // Player physics
+      velocityY += -25 * dt;
+      player.position.y += velocityY * dt;
+      if (player.position.y <= floorY) {
+        player.position.y = floorY;
+        velocityY = 0;
+        isOnGround = true;
+      }
+
+      // Moving th  ground
+      for (const seg of groundSegments) {
+        seg.position.x -= worldSpeed * dt;
+        if (seg.position.x < -20) {
+          const maxX = Math.max(...groundSegments.map(s => s.position.x));
+          seg.position.x = maxX + segmentWidth;
+        }
+      }
+
+      //spikes
+      for (const spike of spikes) {
+        spike.group.position.x -= worldSpeed * dt;
+
+        if (spike.group.position.x < -20) {
+          const maxX = Math.max(...spikes.map(s => s.group.position.x));
+          let spacing;
+          if (spike.type === 'single') spacing = 12 + Math.random() * 6;
+          else if (spike.type === 'double') spacing = 18 + Math.random() * 6;
+          else spacing = 24 + Math.random() * 6;
+          spike.group.position.x = maxX + spacing;
+        }
+
+        if (collideWithSpike(spike.group)) {
+          endGame();
+          return;
+        }
+      }
+      camera.position.y = 6.5 + Math.sin(runTime * 2) * 0.05;
+      camera.lookAt(-2, 1, 0);
+      stars.rotation.y += dt * 0.01;
+    }
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.033);
+      update(dt);
+      renderer.render(scene, camera);
+    }
+
+    animate();
+    playBtn.addEventListener('click', () => {
+      startGame();
+    });
+    pauseBtn.addEventListener('click', () => {
+      pauseGame();
+    });
+    resumeBtn.addEventListener('click', () => {
+      resumeGame();
+    });
+    retryBtn.addEventListener('click', () => {
+      startGame();
+    });
+    restartFromPauseBtn.addEventListener('click', () => {
+      startGame();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (state === 'menu') {
+          startGame();
+        } else if (state === 'playing') {
+          jump();
+        } else if (state === 'gameover') {
+          startGame();
+        }
+      }
+
+      if (e.code === 'Escape') {
+        if (state === 'playing') {
+          pauseGame();
+        } else if (state === 'paused') {
+          resumeGame();
+        }
+      }
+
+      if (e.code === 'Enter') {
+        if (state === 'menu' || state === 'gameover') {
+          startGame();
+        }
+      }
+    });
+
+    window.addEventListener('pointerdown', () => {
+      if (state === 'playing') {
+        jump();
+      }
+      if (state === 'menu') {
+        startGame();
+      }
+      if (state === 'gameover') {
+        startGame();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+  </script>
+</body>
+</html>
